@@ -159,6 +159,16 @@ To convert raw depth maps into linear or 3D form, refer to the companion project
 
 Required permissions (camera/scene access) are requested automatically at runtime.
 
+## 🎚 Adjusting Capture Frame Rates
+
+Frame-rate throttling is now centralized through the `FrameRateSettings` component that lives on the root `RealityLog` GameObject in `Assets/RealityLog/Scenes/RealityLogScene.unity`.
+
+1. Select `RealityLog` in the hierarchy.
+2. In `FrameRateSettings`, set the desired FPS for **Camera Capture**, **Depth Export**, and **Pose Logging** (e.g., all `15`).
+3. Every `ImageReaderSurfaceProvider`, `DepthMapExporter`, and `PoseLogger` under that root automatically reads those values at edit/play time. You still can override an individual component locally by unchecking its limiter if needed—the central values simply populate the defaults.
+
+With this setup you only touch a single inspector to keep all subsystems in sync.
+
 ---
 
 ## 🛠 Environment

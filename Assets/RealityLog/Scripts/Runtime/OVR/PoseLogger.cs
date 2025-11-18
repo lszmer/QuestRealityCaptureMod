@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using RealityLog.Core;
 using UnityEngine;
 
 namespace RealityLog.OVR
@@ -29,12 +30,19 @@ namespace RealityLog.OVR
         [Header("Optional")]
         [SerializeField] private Transform trackingSpace = default!;
 
+        [SerializeField] private FrameRateSettings? frameRateSettings;
+
+        [Header("Frame Rate Limiter")]
+        [SerializeField] private bool limitPoseLoggingFrameRate = true;
+        [SerializeField, Min(0.1f)] private float targetPoseLoggingFps = 15f;
+
         private CsvWriter? writer = null;
 
         private double baseOvrTimeSec;
         private long baseUnixTimeMs;
 
         private double latestTimestamp;
+        private float nextPoseLogTime;
 
         public string DirectoryName
         {
@@ -71,10 +79,16 @@ namespace RealityLog.OVR
             writer = null;
         }
 
+        private void Awake()
+        {
+            ApplyFrameRateSettings();
+        }
+
         private void Start()
         {
             baseOvrTimeSec = OVRPlugin.GetTimeInSeconds();
             baseUnixTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            nextPoseLogTime = Time.unscaledTime;
 
             Debug.Log($"[Time Log] Base OVR Time (sec): {baseOvrTimeSec}, Base Unix Time (ms): {baseUnixTimeMs}");
 
@@ -108,7 +122,10 @@ namespace RealityLog.OVR
                 return;
             }
 
-            latestTimestamp = timestamp;
+            if (limitPoseLoggingFrameRate && !IsPoseLogDue())
+            {
+                return;
+            }
 
             var pose = poseState.Pose.ToOVRPose();
 
@@ -126,6 +143,13 @@ namespace RealityLog.OVR
                 position.x, position.y, position.z,
                 orientation.x, orientation.y, orientation.z, orientation.w
             );
+
+            latestTimestamp = timestamp;
+
+            if (limitPoseLoggingFrameRate)
+            {
+                ScheduleNextPoseLog();
+            }
         }
 
         private long ConvertOvrSecToUnixTimeMs(double ovrTime)
@@ -139,6 +163,41 @@ namespace RealityLog.OVR
         {
             writer?.Dispose();
             writer = null;
+        }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            ApplyFrameRateSettings();
+        }
+#endif
+
+        private bool IsPoseLogDue()
+        {
+            return Time.unscaledTime >= nextPoseLogTime;
+        }
+
+        private void ScheduleNextPoseLog()
+        {
+            const float MIN_FPS = 0.1f;
+            var interval = 1f / Mathf.Max(targetPoseLoggingFps, MIN_FPS);
+            nextPoseLogTime = Time.unscaledTime + interval;
+        }
+
+        private void ApplyFrameRateSettings()
+        {
+            if (frameRateSettings == null)
+            {
+                frameRateSettings = GetComponentInParent<FrameRateSettings>();
+            }
+
+            if (frameRateSettings == null)
+            {
+                return;
+            }
+
+            limitPoseLoggingFrameRate = frameRateSettings.LimitPoseLoggingFrameRate;
+            targetPoseLoggingFps = frameRateSettings.PoseLoggingFps;
         }
     }
 }

@@ -1442,6 +1442,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1104910058}
+  - component: {fileID: 1104910060}
   m_Layer: 0
   m_Name: RealityLog
   m_TagString: Untagged
@@ -1469,6 +1470,24 @@ Transform:
   - {fileID: 138327925}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1104910060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1104910057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b4c5d6e7f8091a2b3c4d5e6f7081920, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  limitCameraCaptureFrameRate: 1
+  cameraCaptureFps: 15
+  limitDepthExportFrameRate: 1
+  depthExportFps: 15
+  limitPoseLoggingFrameRate: 1
+  poseLoggingFps: 15
 --- !u!1 &1142010763
 GameObject:
   m_ObjectHideFlags: 0

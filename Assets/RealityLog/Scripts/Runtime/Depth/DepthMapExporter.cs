@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using RealityLog.Core;
 using UnityEngine;
 using UnityEngine.Android;
 
@@ -27,6 +28,12 @@ namespace RealityLog.Depth
         [SerializeField] private string leftDepthDescFileName = "left_depth_descriptors.csv";
         [SerializeField] private string rightDepthDescFileName = "right_depth_descriptors.csv";
 
+        [SerializeField] private FrameRateSettings? frameRateSettings;
+
+        [Header("Frame Rate Limiter")]
+        [SerializeField] private bool limitDepthExportFrameRate = true;
+        [SerializeField, Min(0.1f)] private float targetDepthExportFps = 15f;
+
         private DepthDataExtractor? depthDataExtractor;
 
         private DepthRenderTextureExporter? renderTextureExporter;
@@ -38,6 +45,7 @@ namespace RealityLog.Depth
 
         private bool isExporting = false;
         private bool hasScenePermission = false;
+        private float nextDepthExportTime;
 
         public string DirectoryName
         {
@@ -76,6 +84,11 @@ namespace RealityLog.Depth
             depthDataExtractor?.SetDepthEnabled(false);
         }
 
+        private void Awake()
+        {
+            ApplyFrameRateSettings();
+        }
+
         private void Start()
         {
             baseOvrTimeSec = OVRPlugin.GetTimeInSeconds();
@@ -83,6 +96,8 @@ namespace RealityLog.Depth
 
             depthDataExtractor = new();
             renderTextureExporter = new(copyDepthMapShader);
+
+            nextDepthExportTime = Time.unscaledTime;
 
             Permission.RequestUserPermission(OVRPermissionsRequester.ScenePermission);
 
@@ -106,6 +121,11 @@ namespace RealityLog.Depth
                 return;
             }
 
+            if (limitDepthExportFrameRate && !IsDepthExportDue())
+            {
+                return;
+            }
+
             if (!hasScenePermission)
             {
                 hasScenePermission = Permission.HasUserAuthorizedPermission(OVRPermissionsRequester.ScenePermission);
@@ -122,6 +142,10 @@ namespace RealityLog.Depth
 
             if (depthDataExtractor.TryGetUpdatedDepthTexture(out var renderTexture, out var frameDescriptors))
             {
+                if (limitDepthExportFrameRate)
+                {
+                    ScheduleNextDepthExport();
+                }
                 const int FRAME_DESC_COUNT = 2;
 
                 if (renderTexture == null || !renderTexture.IsCreated())
@@ -183,9 +207,45 @@ namespace RealityLog.Depth
             return baseUnixTimeMs + deltaMs;
         }
 
+        private bool IsDepthExportDue()
+        {
+            var now = Time.unscaledTime;
+            if (now < nextDepthExportTime)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void ScheduleNextDepthExport()
+        {
+            const float MIN_FPS = 0.1f;
+            var interval = 1f / Mathf.Max(targetDepthExportFps, MIN_FPS);
+            nextDepthExportTime = Time.unscaledTime + interval;
+        }
+
+        private void ApplyFrameRateSettings()
+        {
+            if (frameRateSettings == null)
+            {
+                frameRateSettings = GetComponentInParent<FrameRateSettings>();
+            }
+
+            if (frameRateSettings == null)
+            {
+                return;
+            }
+
+            limitDepthExportFrameRate = frameRateSettings.LimitDepthExportFrameRate;
+            targetDepthExportFps = frameRateSettings.DepthExportFps;
+        }
+
 #if UNITY_EDITOR
         private void OnValidate()
         {
+            ApplyFrameRateSettings();
+
             const string COPY_DEPTH_MAP_SHADER_PATH = "Assets/RealityLog/ComputeShaders/CopyDepthMap.compute";
 
             if (copyDepthMapShader == null)
