@@ -1,7 +1,9 @@
 {
     "name": "RealityLog",
     "rootNamespace": "RealityLog",
-    "references": [],
+    "references": [
+        "Unity.TextMeshPro"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
