@@ -13,6 +13,21 @@ namespace RealityLog.UI.Coverage
         [SerializeField] private CoverageSphereController? coverageController;
         [SerializeField] private FogSphereController? fogController;
 
+        private void Awake()
+        {
+            if (coverageController == null)
+            {
+                coverageController = GetComponentInChildren<CoverageSphereController>(true)
+                    ?? GetComponentInParent<CoverageSphereController>();
+            }
+
+            if (fogController == null)
+            {
+                fogController = GetComponentInChildren<FogSphereController>(true)
+                    ?? GetComponentInParent<FogSphereController>();
+            }
+        }
+
         public void OnRecordingStarted()
         {
             var hasTarget = false;

@@ -26,6 +26,7 @@ namespace RealityLog.UI.Coverage
         [SerializeField] private Vector2Int maskResolution = new(256, 128);
         [SerializeField, Range(1f, 45f)] private float brushAngleDegrees = 15f;
         [SerializeField, Range(0.5f, 30f)] private float brushFeatherDegrees = 5f;
+        [SerializeField] private Vector2 viewOffsetDegrees = Vector2.zero;
         [SerializeField, Min(0.01f)] private float maskUpdateInterval = 0.03f;
 
         private RenderTexture? maskTexture;
@@ -132,6 +133,8 @@ namespace RealityLog.UI.Coverage
             }
 
             var forward = headTransform.forward.normalized;
+            forward = ApplyViewOffset(forward);
+            forward.x = -forward.x;
 
             fogMaskCompute.SetFloats("_ForwardDir", forward.x, forward.y, forward.z);
 
@@ -145,6 +148,18 @@ namespace RealityLog.UI.Coverage
             var groupsX = Mathf.CeilToInt(maskResolution.x / 8f);
             var groupsY = Mathf.CeilToInt(maskResolution.y / 8f);
             fogMaskCompute.Dispatch(kernelId, groupsX, groupsY, 1);
+        }
+
+        private Vector3 ApplyViewOffset(Vector3 direction)
+        {
+            if (viewOffsetDegrees == Vector2.zero)
+            {
+                return direction;
+            }
+
+            var yaw = Quaternion.AngleAxis(viewOffsetDegrees.x, Vector3.up);
+            var pitch = Quaternion.AngleAxis(viewOffsetDegrees.y, Vector3.right);
+            return yaw * pitch * direction;
         }
 
         private void SetupMaterialInstance()
