@@ -6,21 +6,33 @@ namespace RealityLog.UI.Coverage
 {
     /// <summary>
     /// Helper MonoBehaviour that can be targeted by any UnityEvent to reset the
-    /// coverage sphere whenever a recording session begins.
+    /// coverage visualization whenever a recording session begins.
     /// </summary>
     public sealed class CoverageRecordingStartHandler : MonoBehaviour
     {
-        [SerializeField] private CoverageSphereController coverageController = default!;
+        [SerializeField] private CoverageSphereController? coverageController;
+        [SerializeField] private FogSphereController? fogController;
 
         public void OnRecordingStarted()
         {
-            if (coverageController == null)
+            var hasTarget = false;
+
+            if (coverageController != null)
             {
-                Debug.LogWarning($"{nameof(CoverageRecordingStartHandler)} missing CoverageSphereController reference.", this);
-                return;
+                coverageController.ResetCoverage();
+                hasTarget = true;
             }
 
-            coverageController.ResetCoverage();
+            if (fogController != null)
+            {
+                fogController.ResetFog();
+                hasTarget = true;
+            }
+
+            if (!hasTarget)
+            {
+                Debug.LogWarning($"{nameof(CoverageRecordingStartHandler)} has no coverage targets assigned.", this);
+            }
         }
     }
 }

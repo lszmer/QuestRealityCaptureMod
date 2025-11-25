@@ -1,0 +1,62 @@
+#pragma kernel CSMain
+
+#define PI 3.14159265359
+#define TWO_PI 6.28318530718
+#define HALF_PI 1.57079632679
+
+RWTexture2D<float> Result;
+
+int2 _TextureSize;
+float3 _ForwardDir;
+float _CosOuterAngle;
+float _CosInnerAngle;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint width = (uint)_TextureSize.x;
+    uint height = (uint)_TextureSize.y;
+
+    if (id.x >= width || id.y >= height)
+    {
+        return;
+    }
+
+    int2 pixel = int2(id.xy);
+
+    float2 uv = (float2(pixel) + 0.5) / float2(width, height);
+    float longitude = uv.x * TWO_PI - PI;
+    float latitude = uv.y * PI - HALF_PI;
+
+    float cosLat = cos(latitude);
+    float3 dir = float3(sin(longitude) * cosLat, sin(latitude), cos(longitude) * cosLat);
+
+    dir = normalize(dir);
+
+    float dotValue = dot(dir, _ForwardDir);
+
+    float stampValue = 0.0;
+
+    if (dotValue >= _CosInnerAngle)
+    {
+        stampValue = 1.0;
+    }
+    else if (dotValue >= _CosOuterAngle)
+    {
+        float denom = max(_CosInnerAngle - _CosOuterAngle, 1e-5);
+        stampValue = saturate((dotValue - _CosOuterAngle) / denom);
+    }
+
+    if (stampValue <= 0.0)
+    {
+        return;
+    }
+
+    float previous = Result[pixel];
+
+    if (stampValue > previous)
+    {
+        Result[pixel] = stampValue;
+    }
+}
+
