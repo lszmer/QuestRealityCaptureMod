@@ -1641,7 +1641,7 @@ MonoBehaviour:
   maskResolution: {x: 256, y: 128}
   brushAngleDegrees: 30
   brushFeatherDegrees: 5
-  viewOffsetDegrees: {x: -90, y: -15}
+  viewOffsetDegrees: {x: -90, y: 15}
   maskUpdateInterval: 0.03
 --- !u!1 &1104910057
 GameObject:
